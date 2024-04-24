@@ -1,0 +1,1 @@
+This is my Ansbile repository for learning Ansible. The Linux machines used are all ran on VMWare Fusion VMs running Ubuntu Server. This is also my first time using Git, so if it looks sloppy it probably is.
