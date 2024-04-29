@@ -7,6 +7,17 @@
   - name: install apache and php packages
     package:
       name:
-      - "{{ apache_package }}"
-      - "{{ php_package }}"
-      update_cache: yes
+        - "{{ apache_package }}"
+        - "{{ php_package }}"
+      state: latest
+      update_cache: true
+    when: ansible_distribution == "Ubuntu"
+
+
+  - name: install apache and php packages
+    dnf:
+      name:
+        - "{{ apache_package }}"
+        - "{{ php_package }}"
+      state: latest
+    when: ansible_distribution == "Rocky"
