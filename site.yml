@@ -1,0 +1,64 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: install updates on Ubuntu
+    package:
+      upgrade: dist
+      update_cache: true
+    when: ansible_distribution == "Ubuntu"
+
+  - name: install updates on Rocky
+    package:
+      update_cache: true
+      update_only: true
+    when: ansible_distribution == "Rocky"
+
+- hosts : web_servers
+  become: true
+  tasks:
+
+  - name: install apache and php packages on Ubuntu
+    package:
+      name:
+        - apache2
+        - libapache2-mod-php
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+  - name: install apache and php packages on Rocky
+    package:
+      name:
+        - httpd
+        - php
+      state: latest
+    when: ansible_distribution == "Rocky"
+
+- hosts: db_servers
+  become: true
+  tasks:
+
+  - name: install mariadb package on Ubuntu
+    package:
+      name: mariadb-server
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+  - name: install mariadb on Rocky
+    package:
+      name: mariadb
+      state: latest
+    when: ansible_distribution == "Rocky"
+
+- hosts: file_servers
+  become: true
+  tasks:
+
+  - name: install samba package
+    package:
+      name: samba
+      state: latest
+
+  
