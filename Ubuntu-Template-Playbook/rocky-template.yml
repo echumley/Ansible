@@ -5,13 +5,6 @@
   tasks:
 
     # Installs updates
-    - name: Install updates on Ubuntu
-      package:
-        upgrade: dist
-        update_cache: true
-      when: ansible_distribution == "Ubuntu"
-      tags: always
-
     - name: Install updates on Rocky
       package:
         update_cache: true
@@ -20,17 +13,6 @@
       tags: always
 
     # Installs and starts required software packages
-    - name: Install QEMU Guest Agent, Cloud-Init, and Unattended Upgrades on Ubuntu
-      apt:
-        name:
-          - qemu-guest-agent
-          - cloud-init
-          - unattended-upgrades
-        state: present
-        update_cache: yes
-      when: ansible_distribution == "Ubuntu"
-      tags: always
-
     - name: Install QEMU Guest Agent, Cloud-Init, and Unattended Upgrades on Rocky
       dnf:
         name:
