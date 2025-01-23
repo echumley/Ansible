@@ -1,0 +1,30 @@
+---
+- name: Install Wazuh using Quickstart command
+  hosts: all
+  become: true
+  tasks:
+
+    # Installs updates
+    - name: Install updates on Ubuntu
+      package:
+        upgrade: dist
+        update_cache: true
+      tags: always
+
+    - name: Download Wazuh install script
+      ansible.builtin.shell:
+        cmd: "curl -sO https://packages.wazuh.com/4.9/wazuh-install.sh"
+        creates: /tmp/wazuh-install.sh
+      register: wazuh_script_download
+      ignore_errors: true
+
+    - name: Run Wazuh install script with Quickstart -a option
+      ansible.builtin.shell:
+        cmd: "bash /tmp/wazuh-install.sh -a"
+        creates: /var/ossec/etc/ossec.conf
+      when: wazuh_script_download.changed
+
+    - name: Remove Wazuh install script
+      ansible.builtin.file:
+        path: /tmp/wazuh-install.sh
+        state: absent

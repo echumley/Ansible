@@ -1,0 +1,112 @@
+---
+- name: Prepare Ubuntu VM for service deployment and homelab integration
+  hosts: all
+  become: true
+
+  tasks:
+    # Installs updates
+    - name: Install updates on Ubuntu
+      package:
+        upgrade: dist
+        update_cache: true
+      tags: always
+
+    # Installs and configures Fail2Ban
+    - name: Install Fail2ban package
+      package:
+        name: fail2ban
+        state: present
+
+    - name: Ensure Fail2ban service is started and enabled
+      service:
+        name: fail2ban
+        state: started
+        enabled: true
+
+    - name: Configure Fail2ban to protect SSH
+      copy:
+        dest: /etc/fail2ban/jail.d/defaults-debian.conf
+        content: |
+          [sshd]
+          enabled = true
+          port = ssh
+          logpath = /var/log/auth.log
+          maxretry = 5
+          bantime = 600
+          findtime = 600
+          action = %(action_mwl)s
+        owner: root
+        group: root
+        mode: '0644'
+    
+    - name: Restart Fail2ban to apply the configuration
+      service:
+        name: fail2ban
+        state: restarted
+
+    # Install and configure CrowdSec
+    - name: Install CrowdSec
+      package:
+        name: crowdsec
+        state: present
+
+    - name: Ensure CrowdSec service is started and enabled
+      service:
+        name: crowdsec
+        state: started
+        enabled: true
+
+    - name: Install CrowdSec bouncers (e.g., Fail2Ban Bouncer for integration)
+      package:
+        name: crowdsec-firewall-bouncer
+        state: present
+
+    - name: Configure CrowdSec to forward logs to syslog
+      copy:
+        dest: /etc/crowdsec/config.yaml
+        content: |
+          # Configuration for CrowdSec to forward logs to syslog
+          logging:
+            syslog:
+              enabled: true
+              facility: local0
+              level: info
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Configure CrowdSec to protect SSH
+      copy:
+        dest: /etc/crowdsec/parsers/sshd.yaml
+        content: |
+          # SSH parser config for CrowdSec
+          - type: ssh
+            name: sshd
+            actions:
+              - ban: true
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Restart CrowdSec to apply the configuration
+      service:
+        name: crowdsec
+        state: restarted
+
+    # Enable syslog forwarding to rsyslog ingestion server
+    - name: Configure syslog forwarding to rsyslog ingestion server
+      copy:
+        dest: /etc/rsyslog.d/90-crowdsec.conf
+        content: |
+          # Forward CrowdSec logs to centralized rsyslog server
+          *.* @your.rsyslog.server:514
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Restart rsyslog to apply syslog configuration
+      service:
+        name: rsyslog
+        state: restarted
+
+# Configure logrotate to delete logs after a day
