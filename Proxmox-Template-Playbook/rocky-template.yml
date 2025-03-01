@@ -73,6 +73,9 @@
         state: present
       notify: Reload SSH
 
+    - name: Flush handlers to reload SSH immediately
+      meta: flush_handlers
+
     # Configure Fail2Ban
     - name: Install Fail2Ban
       dnf:
@@ -91,31 +94,34 @@
         src: /etc/fail2ban/fail2ban.conf
         dest: /etc/fail2ban/fail2ban.local
         remote_src: yes
+      tags: f2b
 
-    - name: Copy default Jail configuration
+    - name: Copy Fail2Ban configuration to VM
       copy:
-        src: /etc/fail2ban/jail.conf
+        src: ./Configurations/fail2ban-jail.conf  # Adjust this path to where your local jail.local file is stored
         dest: /etc/fail2ban/jail.local
-        remote_src: yes
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Restart Fail2Ban
 
-    - name: Configure Fail2Ban Jail settings
-      replace:
-        path: /etc/fail2ban/jail.local
-        regexp: "{{ item.regex }}"
-        replace: "{{ item.value }}"
-      loop:
-        - { regex: '^\s*#?\s*bantime\s*=.*$', value: 'bantime  = 60m' }
-        - { regex: '^\s*#?\s*findtime\s*=.*$', value: 'findtime = 5m' }
-        - { regex: '^\s*#?\s*maxretry\s*=.*$', value: 'maxretry = 3' }
-        - { regex: '^\s*#?\s*backend\s*=.*$', value: 'backend = systemd' }
-        - { regex: '^\s*#?\s*banaction\s*=.*$', value: 'banaction = firewallcmd-rich-rules[actiontype=<multiport>]' }
-        - { regex: '^\s*#?\s*banaction_allports\s*=.*$', value: 'banaction_allports = firewallcmd-rich-rules[actiontype=<allports>]' }
-        - { regex: '^\s*#?\s*ignoreip\s*=.*$', value: 'ignoreip = 10.1.30.0/24' }
-
-    - name: Reload Fail2Ban service
+    - name: Ensure Fail2Ban is enabled and started
       systemd:
         name: fail2ban
-        state: restarted
+        enabled: yes
+        state: started
+
+    - name: Reload Fail2Ban configuration
+      command: fail2ban-client reload
+      when: ansible_facts['os_family'] == "RedHat"
+
+    - name: Check Fail2Ban status
+      command: fail2ban-client status sshd
+      register: fail2ban_status
+      changed_when: false
+
+    - debug:
+        msg: "{{ fail2ban_status.stdout_lines }}"
 
     # System cleanup
     - name: Remove SSH authorized_keys file
@@ -145,3 +151,7 @@
       systemd:
         name: sshd
         state: reloaded
+    - name: Restart Fail2Ban
+      systemd:
+        name: fail2ban
+        state: restarted

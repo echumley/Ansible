@@ -1,2 +1,0 @@
-[all]
-10.1.10.242 ansble_ssh_host=rocky-test-2 ansible_ssh_user=user ansible_ssh_private_key_file=/Users/Ethan/.ssh/ethan-ansible-key
